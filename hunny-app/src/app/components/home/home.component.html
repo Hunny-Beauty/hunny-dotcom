@@ -1,17 +1,31 @@
-<header>
-  <div id="global_header">
-      OMG, DID YOU KNOW???
-  </div>
-  <nav id="main_nav">
-    <span class="pull-left">
-      <a>About Us</a>
-      <a>Lookbook</a>
-      <a>Hunnies</a>
-    </span>
-    <img src="../../../assets/logo.svg" height="50" />
-    <span class="pull-right">
-      <a>Follow Us</a>
-      <a>Slide into our DM's</a>
-    </span>
-  </nav>
-</header>
+<ngb-carousel *ngIf="images">
+  <ng-template ngbSlide>
+    <img [src]="images[0]" alt="Random first slide">
+    <div class="carousel-caption">
+      <h3>A cute quote here maybe...</h3>
+      <p>- Caytlynn</p>
+    </div>
+  </ng-template>
+  <ng-template ngbSlide>
+    <img [src]="images[1]" alt="Random second slide">
+    <div class="carousel-caption">
+      <h3>A cute quote here maybe...</h3>
+      <p>- Stacy</p>
+    </div>
+  </ng-template>
+  <ng-template ngbSlide>
+    <img [src]="images[2]"  alt="Random third slide">
+    <div class="carousel-caption">
+      <h3>A cute quote here maybe...</h3>
+      <p>- Eileen</p>
+    </div>
+  </ng-template>
+  <ng-template ngbSlide>
+    <img [src]="images[3]" alt="Random fourth slide">
+    <div class="carousel-caption">
+      <h3>A cute quote here maybe...</h3>
+      <p>- Other Girl</p>
+    </div>
+  </ng-template>
+</ngb-carousel>
+

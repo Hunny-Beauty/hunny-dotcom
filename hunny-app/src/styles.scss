@@ -1,0 +1,365 @@
+/* You can add global styles to this file, and also import other style files */
+@import "../node_modules/bootstrap/scss/bootstrap.scss";
+@import "assets/styles/shared/colors.scss";
+
+body {
+  background-color: #fad040;
+  color: #fff;
+  font-family: Helvetica, Arial, sans-serif;
+}
+
+.pull-left {
+  float: left;
+}
+
+.pull-right {
+  float: right;
+}
+
+ngb-carousel .carousel-item {
+  img {
+    width: 100%;
+  }
+}
+
+/* Copied Bootstrap Mixins */
+
+@mixin _assert-ascending($map, $map-name) {
+  $prev-key: null;
+  $prev-num: null;
+  @each $key,
+  $num in $map {
+    @if $prev-num !=null and $prev-num>=$num {
+      @warn "Invalid value for #{$map-name}: This map must be in ascending order, but key '#{$key}' has value #{$num} which isn't greater than #{$prev-num}, the value of the previous key '#{$prev-key}' !";
+    }
+    $prev-key: $key;
+    $prev-num: $num;
+  }
+}
+
+$grid-gutter-width: 1.875rem;
+
+/*###
+Aditional Variables
+###*/
+
+
+/* -> Those lines have to be added to _variables.scss */
+
+//Gutter width
+$hex-grid-gutter-width: 20px;
+
+/* adjust the grid gutter vertically */
+
+
+/* this depends on the value choosen for the gutter.
+Unfortunatelly this has to be done by hand until the gutters look "right"*/
+
+$hex-grid-gutter-offset: 2px;
+//here you can set a different gutter for the hexagon grid. Do not use % values.
+$hex-grid-gutter-cols: 13; //the maximum amount of cols to generate
+
+/* Breakpoints
+You can set the same as the bootstrap grid ones but you can also have different ones*/
+
+$hex-grid-breakpoints: ( xxs: 0, // <- this was added
+xs: 350px, //<- this was changed from 0 to 350px
+sm: 544px, md: 768px, lg: 992px, xl: 1200px) !default;
+@include _assert-ascending($hex-grid-breakpoints, "$hex-grid-breakpoints");
+
+/* Z-index for links on hexagons*/
+
+$z-index-hex-links: 10;
+
+/* ###
+Here comes the actual hexagon grid code
+### */
+
+$hex-aspect-ratio: .866025; // This is a constant. Do not change!
+
+/* It turned out that the SVG polygon I am using for the hexagon is not perfectly matching an equal sided hexagon. Its slightly distorted and therefore has a different aspect ratio. Please remove this variable override if you use perfect hexagons.*/
+
+$hex-aspect-ratio: (310/350); //adapted aspect ratio for our distorted SVG path
+
+/* Calculate the hex gutters */
+
+$hex-leftright-padding: $hex-grid-gutter-width / 2;
+$hex-topbottom-padding: ($hex-grid-gutter-width / 2) * $hex-aspect-ratio;
+@mixin generate-hex-grid-base() {
+  /*== Grid CSS 1: Basic CSS that is independet of number of columns */
+  .hex-grid {
+    overflow: hidden;
+    // Around the the grid, compensate for the padding within .hex-cols
+    margin: #{-$hex-topbottom-padding} #{-$hex-topbottom-padding};
+    .hex-row {
+      display: table; //clear floating of .hex
+      margin-top: $hex-grid-gutter-offset - $hex-topbottom-padding; //neutralice offset margins on the .hex-cols and padding on the hexagons
+    }
+    .hex-col {
+      float: left;
+      position: relative;
+      margin-top: -$hex-grid-gutter-offset;
+    }
+    .hex-wrapper {
+      $hex-offset: (100% / 6);
+      position: absolute;
+      top: 0;
+      /* Offset position within the col-container */
+      left: $hex-offset;
+      right: $hex-offset;
+      height: 0;
+      padding: 0;
+      padding-bottom: ((100% - (2 * $hex-offset)) * $hex-aspect-ratio); //because of the left and right offset our base is 66.6% instead of 100%
+    }
+    .hex-svg {
+      padding: $hex-topbottom-padding $hex-leftright-padding;
+    }
+  }
+}
+
+@mixin generate-hex-grid-cols($breakpoint-name:"", $breakpoint-width:0, $hex-grid-cols:0) {
+  /* This allows us to initialize the mobile first case without col-* suffix  */
+  $grid-class-suffix: "";
+  @if $breakpoint-name=="" {
+    $hex-grid-cols: 1;
+    $grid-class-suffix: "";
+  }
+  @else {
+    $grid-class-suffix: -#{$breakpoint-name}-#{$hex-grid-cols};
+  }
+  /*= Math that changes depending on the amount of cols */
+  /* calculation of the amount of hexagons on first and second row */
+  $hex-grid-cols-first-row: ceil($hex-grid-cols / 2);
+  $hex-grid-cols-second-row: floor($hex-grid-cols / 2);
+  /* using modulo to find out if total amount is odd or even */
+  $hex-grid-cols-is-odd: $hex-grid-cols % 2;
+  /* Calculate the position of the extra offset margins*/
+  $offset-left-nth: $hex-grid-cols-first-row+1;
+  $offset-right-nth:0; //initialize
+  @if $hex-grid-cols-is-odd==1 {
+    //odd case
+    $offset-right-nth: $hex-grid-cols;
+  }
+  @else if $hex-grid-cols-is-odd==0 {
+    //even case
+    $offset-right-nth: $hex-grid-cols-first-row;
+  }
+  /* Amount of grid dividers in one row. Each .hex-col is divided into 6 subcolumns */
+  $hex-grid-dividers: 3+($hex-grid-cols * 3);
+  /* calculation of the divider width
+  The divider with is used to find out the width of the .hex-row wrapper relative to the Bootstrap .container.
+  All dividers summed together are always > 100% because two dividers are in the invisible space on the left and right. e.g 120% in case of 12 dividers*/
+  $hex-row-divider-width: 100% / ($hex-grid-dividers - 2);
+  $hex-row-width: $hex-row-divider-width * $hex-grid-dividers; //e.g 12x10%=120%
+  /* .hex-col width within the .hex-row.
+  All col width within a row sum up to 100% because we change the reference system here. */
+  $hex-col-divider-width: (100% / $hex-grid-dividers);
+  $hex-col-width: $hex-col-divider-width * 6;
+  /*== Grid CSS 2: Mobile first and col 1 case*/
+  @media(min-width:$breakpoint-width) {
+    .hex-grid#{$grid-class-suffix} {
+      .hex-row {
+        width: $hex-row-width; //this value includes gutters
+        margin-left: -($hex-row-divider-width);
+      }
+      .hex-col {
+        width: $hex-col-width;
+        padding-bottom: ($hex-col-width / 1.5) * $hex-aspect-ratio;
+      }
+    }
+  }
+  /*== Grid CSS 3: More than one colum case */
+  @media(min-width:$breakpoint-width) {
+    @if $hex-grid-cols>1 {
+      .hex-grid#{$grid-class-suffix} {
+        .hex-row {
+          padding-bottom: (2 * $hex-row-divider-width * $hex-aspect-ratio); //make the last row fully visible although there is overflow hidden
+        }
+        .hex-col {
+          padding-bottom: ($hex-col-width / 3) * $hex-aspect-ratio; // We just need half the height of the hexagon ("/6 * 4 / 2" becomes "/3")
+          /* Extra offset margins (no margin if just one grid col)*/
+          /* The first rule is dirty, but i need an stronger selector on each breakpoint */
+          &:nth-child(1n+1) {
+            margin-left: 0;
+            margin-right: 0;
+          }
+          &:nth-child(#{$hex-grid-cols}n + #{$offset-left-nth}) {
+            margin-left: $hex-col-width / 2;
+          }
+          &:nth-child(#{$hex-grid-cols}n + #{$offset-right-nth}) {
+            margin-right: $hex-col-width / 2;
+          }
+        }
+      }
+    }
+  }
+}
+
+
+/*###
+Call the mixins to generate the grid
+###*/
+
+
+/* Include for common css*/
+
+@include generate-hex-grid-base();
+//Initialization without arguments. Not elegant but....
+@include generate-hex-grid-cols();
+@each $breakpoint-name in map-keys($hex-grid-breakpoints) {
+  $breakpoint-width: map-get($hex-grid-breakpoints, $breakpoint-name);
+  @for $i from 1 to $hex-grid-gutter-cols {
+    @include generate-hex-grid-cols($breakpoint-name, $breakpoint-width, $i);
+  }
+}
+
+/*###
+Formatting the hexagons -> idependent of grid
+### */
+
+//Hide the shared SVG defs
+#hex-polygon-shared,
+#hex-mask-shared {
+  position: absolute;
+  left: -10000px;
+  top: 0;
+  width: 0;
+  height: 0;
+}
+
+// This allows us to set colors within the svg <use> tag shadow dom
+.hex-polygon-shared polygon.hex-polygon {
+  fill: inherit;
+  stroke: inherit;
+}
+
+// Set Basic colors of polygons
+.hex-svg use.hex-polygon {
+  stroke: $hexBgColor;
+  fill: $hexBgColor;
+}
+
+// Set blank polygons
+.hex-svg use.hex-polygon-blank {
+  stroke: transparent;
+  fill: transparent;
+}
+
+// Set Basic colors of polygons
+.hex-svg.hover use.hex-polygon {
+  stroke: $hexBgColorHover;
+  fill: $hexBgColorHover;
+}
+
+// Set White color for mask polygon
+#hex-mask-shared use.hex-polygon {
+  stroke: white;
+  fill: white;
+}
+
+.hex-wrapper {
+  cursor: pointer;
+  .hex-svg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .hex-content {
+    color: $white;
+    display: none;
+    position: absolute;
+    /* centring trick*/
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    -webkit-transform: translate(-50%, -50%);
+  }
+  .hex-boxlink {
+    cursor: pointer;
+    position: absolute;
+    display: block;
+    top: $hex-topbottom-padding;
+    bottom: $hex-topbottom-padding;
+    left: $hex-leftright-padding;
+    right: $hex-leftright-padding;
+    border-radius: 100%;
+    z-index: $z-index-hex-links;
+
+    //IE 10 needs this to render the boxlink
+    // background-image: url("");
+  }
+  //Fill for masked polygons
+  .hex-bg {
+    fill: $hexBgColor;
+  }
+  .default {
+    opacity: 1;
+    transition: opacity  500ms ease-in-out;
+  }
+  &:hover {
+    .hex-content,
+    .hover {
+      display: block;
+      opacity: 1;
+    }
+    .default {
+      opacity: 0;
+    }
+  }
+}
+
+
+/*** HEX CONTENT **********************************************************************/
+
+.name,
+.title {
+  width: 100%;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.name {
+  display: block;
+  font-size: 12px;
+  text-decoration: underline;
+  @media only screen and (min-width: 1023px) {
+    font-size: 20px;
+  }
+}
+
+.title {
+  font-size: 8px;
+  @media only screen and (min-width: 768px) {
+    font-size: 10px;
+  }
+  @media only screen and (min-width: 1250px) {
+    font-size: 14px;
+  }
+}
+
+
+/*** HOVER EFFECT  **********************************************************************/
+
+.hover {
+  opacity: 0;
+  transition: opacity  500ms ease-in-out;
+}
+
+.hex-over {
+  display: none;
+  max-width: 1200px;
+  position: absolute;
+  top: 109px;
+  width: 100%;
+  &.left {
+    left: -94.5%;
+  }
+  &.right {
+    right: -94.5%;
+  }
+  @media only screen and (min-width: 1200px) {
+    display: block;
+  }
+}
